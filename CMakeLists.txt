@@ -55,11 +55,11 @@ find_package(catkin REQUIRED COMPONENTS
 #   Message1.msg
 #   Message3.msg
 # )
-add_message_files(
-  FILES
-    yoloObject.msg
-    yoloObjects.msg
-)
+#add_message_files(
+#  FILES
+#    yoloObject.msg
+#    yoloObjects.msg
+#)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -149,7 +149,14 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME} src/main.cpp src/sound.cpp src/fuzzy_logic.cpp src/test.cpp src/easylogging++.cc src/rostopic.cpp)
+add_executable(${PROJECT_NAME}
+   src/main.cpp
+   src/sound.cpp
+   src/fuzzy_logic.cpp
+   src/test.cpp
+   src/easylogging++.cc
+   src/rostopic.cpp
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

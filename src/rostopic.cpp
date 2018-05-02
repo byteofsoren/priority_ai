@@ -7,6 +7,7 @@ void yolo_callback(std_msgs::String::ConstPtr &msg){
 
 void blindy_callback(std_msgs::String::ConstPtr &msg){
    LOG(INFO) << "bilindy_callbac with '" << msg->data.c_str() << "'\n";
+   
 }
 
 
