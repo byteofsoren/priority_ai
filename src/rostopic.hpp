@@ -10,9 +10,30 @@
 
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "fuzzy_logic.hpp"
+#include <iostream>
+#include <vector>
+#include <string>
 
-void yolo_callback(std_msgs::String::ConstPtr &msg);
-void blindy_callback(std_msgs::String::ConstPtr &msg);
+
+class rostopic
+{
+public:
+   rostopic (std::string topic);
+   void add_subTopic(std::string subTopic);
+   void print_topics();
+   void start_subscribing();
+   void connect_fuzzy(fuzzyLogic &fu);
+   virtual ~rostopic ();
+
+private:
+   template<typename Message>
+   void _calback(const boost::shared_ptr<Message const>&);
+   std::string _mainTopic;
+   std::vector<std::string> _subTopic;
+
+
+};
 
 
 #endif /* ifndef ROSTOPIC_HPP */

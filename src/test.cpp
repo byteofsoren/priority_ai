@@ -5,10 +5,13 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 
+/*
+
 void test_ros_sub(ros::NodeHandlePtr &n){
    ros::Subscriber rossub = n->subscribe("YOLO", 100, yolo_callback);
    ////ros::spin();
 }
+*/
 
 void test_audio()
 {
