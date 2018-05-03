@@ -53,6 +53,8 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    distances.msg
+   yoloObject.msg
+   yoloObjects.msg
    #Message3.msg
 )
 #add_message_files(

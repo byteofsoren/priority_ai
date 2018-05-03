@@ -12,14 +12,16 @@
 #include <std_msgs/String.h>
 #include "rostopic.hpp"
 #include "priority_ai/distances.h"
+#include "priority_ai/yoloObject.h"
+#include "priority_ai/yoloObjects.h"
 
 
 
 //INITIALIZE_EASYLOGGINGPP
 
-void chatterCallback(const priority_ai::distances msg)
+void chatterCallback(const priority_ai::yoloObject msg)
 {
-  ROS_INFO("I heard: [%f]", msg.distL);
+  ROS_INFO("I heard: [%f]", msg.x);
 }
 
 
@@ -35,7 +37,7 @@ int main(int argc, char *argv[])
 
    ros::init(argc, argv, "priority_ai");
    ros::NodeHandle rnode;
-   ros::Subscriber sub = rnode.subscribe("/distances", 1000, chatterCallback);
+   ros::Subscriber sub = rnode.subscribe("/distances2", 1000, chatterCallback);
    //rnode.setParam("name","priority_ai");
    //rnode.param<float>("volume",100);
    
