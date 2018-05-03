@@ -49,12 +49,12 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message3.msg
-# )
+##Generate messages in the 'msg' folder
+ add_message_files(
+   FILES
+   distances.msg
+   #Message3.msg
+)
 #add_message_files(
 #  FILES
 #    yoloObject.msg
@@ -152,9 +152,9 @@ include_directories(
 add_executable(${PROJECT_NAME}
    src/main.cpp
    src/sound.cpp
-   src/fuzzy_logic.cpp
-   src/test.cpp
-   src/easylogging++.cc
+   #src/fuzzy_logic.cpp
+   #src/test.cpp
+   #src/easylogging++.cc
    src/rostopic.cpp
 )
 
