@@ -8,19 +8,8 @@
 #include <stdio.h>
 #include <math.h>
 
-void thread_sound_play(sf::SoundBuffer *bf, int x, int y, int z)
-{
-   sf::Sound s;
-   s.setBuffer(*bf);
-   s.setPosition(x,y,z);
-   usleep(1);
-   s.play();
-   ROS_DEBUG_STREAM("~=[Play sound]=~ \n");
-   while (s.getStatus() == sf::Sound::Playing){
-      usleep(100);
-   }
-   s.resetBuffer();
-}
+
+void _cleaner(std::vector<sf::Sound*> *sounds);
 
 double sind(double angle)
 {
@@ -36,13 +25,10 @@ double cosd(double angle)
 
 
 Sound::Sound(){
+   _cleaner_handle = new std::thread(_cleaner,&_sounds);
 }
 Sound::~Sound(){
-   // Wait untill all threads are finiched before exiting
-   //for (size_t i = 0; i < playing_sounds.size(); ++i) {
-      //playing_sounds[i]->join();
-   //}
-   //sleep(4);
+   _cleaner_handle->join();
 }
 
 
@@ -68,24 +54,35 @@ int Sound::add_sound(std::string path){
 }
 
 int Sound::play_sound(unsigned long sound_nr, float angle, float distance){
-   // setPosition isnt done yet.
-   std::cout << "playing sound_nr="<<sound_nr<<" at angle=" << angle << " distance=" << distance << std::endl;
-   //playing_sounds.push_back(thread_sound_play(sound_nr,angle,distance))
-   //playing_sounds.push_back(thread_sound_play(buffers[sound_nr]));;
-   //vThreads.push_back(std::thread(&Crob::findPath, *i));
-   //playing_sounds.push_back(std::async(thread_sound_play, 0,0,0));
    float xf = _multippler*distance*cosd(angle);
    float yf = _multippler*distance*sind(angle);
-   std::cout << " play_sound x=" << xf << " y=" << yf << std::endl;
-   playing_sounds.push_back(std::async(thread_sound_play, buffers[sound_nr], xf,yf,0));
+   sf::Sound *s = new sf::Sound;
+   s->setBuffer(*buffers[sound_nr]);
+   s->setPosition(xf,yf,0);
+   s->play();
+   _sounds.push_back(s);
    return 0;
+}
+
+void _cleaner(std::vector<sf::Sound*> *sounds){
+   while (true){
+      if (sounds->size() > 0) {
+         sf::Sound *s = (sounds->at(0));
+         ROS_INFO("_Cleaner");
+         if (s->getStatus() != sf::Sound::Playing){
+               ROS_INFO("remove sounds");
+               s->resetBuffer();
+               s->~Sound();
+               sounds->erase(sounds->begin());
+         }
+      }
+      usleep(1000);
+   }
 }
 
 void Sound::list_sounds(){
    for (std::size_t i = 0; i < files.size(); ++i) {
       std::cout << "Path[" << i << "]=" << files[i] << std::endl;
-      //std::cout << "Loopend " << sound_buffers[i].getLoop() << std::endl;
-
    }
 }
 void Sound::setMultippler(float value)
