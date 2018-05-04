@@ -10,8 +10,10 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "rostopic.hpp"
+#include "blindy_findy/distances.h"
 
 
+void blindy_findy_callback(const blindy_findy::distances msg);
 
 int main(int argc, char *argv[])
 {
@@ -22,10 +24,6 @@ int main(int argc, char *argv[])
    ros::NodeHandle rnode;
    rnode.setParam("name","priority_ai");
    rnode.param<float>("volume",100);
-   
-
-
-
 
 
 
