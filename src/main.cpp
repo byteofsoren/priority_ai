@@ -1,4 +1,3 @@
-#include "easylogging++.h"
 #include <string>
 #include <iostream>
 #include "sound.hpp"
@@ -12,15 +11,10 @@
 #include "std_msgs/String.h"
 #include "rostopic.hpp"
 
-INITIALIZE_EASYLOGGINGPP
 
 
 int main(int argc, char *argv[])
 {
-   el::Configurations conf("easylogging++.conf");
-   el::Loggers::reconfigureLogger("default",conf);
-   el::Loggers::reconfigureAllLoggers(conf);
-   LOG(INFO) << "The priority AI initialization";
    for (int i = 0; i < argc; ++i) {
       std::cout << "argument nr=" << i << " argument=" << argv[i] << std::endl;
    }
