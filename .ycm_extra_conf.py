@@ -76,6 +76,7 @@ flags = [
         '-isystem', '/opt/ros/kinetic/include/',
         '-isystem', '/opt/ros/lunar/include/',
         '-isystem', '/usr/include/SFML/',
+        '-isystem', '/home/r00tr4t/catkin_ws/devel/include/',
         # For other target architectures i.e avr and arm
         #'-isystem', '/usr/lib/gcc/avr/{}/'.format(''.join(os.listdir('/usr/lib/gcc/avr/')[:][0])),
         #'-isystem', '/usr/bin/../lib/gcc/arm-linux-gnueabihf/4.9/include',

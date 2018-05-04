@@ -15,9 +15,11 @@ void thread_sound_play(sf::SoundBuffer *bf, int x, int y, int z)
    s.setPosition(x,y,z);
    usleep(1);
    s.play();
+   ROS_DEBUG_STREAM("~=[Play sound]=~ \n");
    while (s.getStatus() == sf::Sound::Playing){
       usleep(100);
    }
+   s.resetBuffer();
 }
 
 double sind(double angle)

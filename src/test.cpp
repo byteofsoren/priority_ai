@@ -13,14 +13,18 @@ void test_ros_sub(ros::NodeHandlePtr &n){
 }
 */
 
-void test_audio()
+void test_sound()
 {
    Sound tones;
-   int tom = tones.add_sound("../resources/tom.wav");
-   //int test = tones.add_sound("../resources/test.wav");
+   int tom = tones.add_sound("resources/tom.wav");
+   int test= tones.add_sound("resources/test.wav");
+   //int test = tones.add_sound("resources/test.wav");
    std::cout << "tom=" << tom << std::endl;
    tones.play_sound(tom,0 ,0 );
+   tones.play_sound(test,0 ,0 );
    tones.list_sounds();
+   ROS_INFO("=== LOADED SOUNDS ===");
+
    //tones.play_sound(test, 0, 0);
    float angle = -180;
    bool runnig = true;

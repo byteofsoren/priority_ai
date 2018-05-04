@@ -7,12 +7,19 @@
 #include <fstream>
 #include <ctime>
 #include <iomanip>
+#include <vector>
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "rostopic.hpp"
 #include "blindy_findy/distances.h"
+#include "yolo_depth_fusion/yoloObject.h"
+#include "yolo_depth_fusion/yoloObjects.h"
+#include "test.hpp"
 
 
+
+
+Sound global_tones;
 void blindy_findy_callback(const blindy_findy::distances msg);
 
 int main(int argc, char *argv[])
@@ -24,21 +31,29 @@ int main(int argc, char *argv[])
    ros::NodeHandle rnode;
    rnode.setParam("name","priority_ai");
    rnode.param<float>("volume",100);
+   global_tones.add_sound("resources/ping.wav");
+   global_tones.add_sound("resources/sonar.wav");
+   global_tones.add_sound("resources/tom.wav");
+   global_tones.play_sound(2,0,0);
+   //test_sound();
+   //ros::Subscriber sub_blindy = rnode.subscribe("/blindy_findy/distances",10,blindy_findy_callback);
+   ros::Subscriber sub_blindy = rnode.subscribe("/distances",1000,blindy_findy_callback);
+   ros::spin();
 
-
-
-   //test_ros_sub(n);
-   //test_audio();
-   //test_fuzzy_Class();
-   //std::ostream strm = std::ostream('DEBUG.DAT');
-   //test_fuzzyLogic();
-//   static std::time_t time_now = std::time(nullptr);
-//   for (int i = 0; i < 10; ++i) {
-//      std::fstream fs;
-//      fs.open ("DEBUG.DAT", std::fstream::in | std::fstream::out | std::fstream::app);
-//      fs << std::put_time(std::localtime(&time_now), "%y-%m-%d %OH:%OM:%OS") << " [ERROR] " << __FILE__ << "(" << __FUNCTION__ << ":" << __LINE__ << ") >> ";
-//      fs.close();
-//   }
    return 0;
+}
 
+void blindy_findy_callback(const blindy_findy::distances msg){
+   static int counter = 0;
+   if (counter > 20000) {
+      float right = msg.distR;
+      float mid = msg.distM;
+      float left = msg.distL;
+      global_tones.play_sound(0,120,right);
+      global_tones.play_sound(0,0,mid);
+      global_tones.play_sound(0,60,left);
+      ROS_INFO_STREAM("left " << left << " mid " << mid << " right " << right << "\n");
+      counter = 0;
+   }
+   counter++;
 }
