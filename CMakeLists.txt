@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
   yolo_depth_fusion
+  #robospeak
   blindy_findy
   roslib
 )
