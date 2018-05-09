@@ -7,7 +7,8 @@
 #include <future>
 #include <stdio.h>
 #include <math.h>
-
+#include <algorithm>
+#include "globals.h"
 
 void _cleaner(std::vector<sf::Sound*> *sounds);
 
@@ -25,9 +26,11 @@ double cosd(double angle)
 
 
 Sound::Sound(){
+   SOUND_RUNNING = true;
    _cleaner_handle = new std::thread(_cleaner,&_sounds);
 }
 Sound::~Sound(){
+   SOUND_RUNNING = false;
    _cleaner_handle->join();
 }
 
@@ -53,6 +56,11 @@ int Sound::add_sound(std::string path){
    return element;
 }
 
+void Sound::add_sound(std::string path, std::string label){
+   add_sound(path);
+   _labels.push_back(label);
+}
+
 int Sound::play_sound(unsigned long sound_nr, float angle, float distance){
    float xf = _multippler*distance*cosd(angle);
    float yf = _multippler*distance*sind(angle);
@@ -64,19 +72,32 @@ int Sound::play_sound(unsigned long sound_nr, float angle, float distance){
    return 0;
 }
 
+void Sound::play_sound(std::string label, float angle, float distance){
+   size_t i = -1;
+   for (i = 0; i < _labels.size(); ++i) {
+      //ROS_INFO("Search for sound");
+      if (label.compare(_labels.at(i)) == 0) {
+         //ROS_INFO("Foind it");
+         play_sound(i, angle, distance);
+         break;
+      }else{
+         //ROS_INFO_STREAM("This " << _labels.at(i) << " did not math " << label << "\n");
+      }
+   }
+}
+
 void _cleaner(std::vector<sf::Sound*> *sounds){
-   while (true){
+   while (SOUND_RUNNING){
       if (sounds->size() > 0) {
          sf::Sound *s = (sounds->at(0));
-         ROS_INFO("_Cleaner");
          if (s->getStatus() != sf::Sound::Playing){
-               ROS_INFO("remove sounds");
+               //ROS_INFO("remove sounds");
                s->resetBuffer();
                s->~Sound();
                sounds->erase(sounds->begin());
          }
       }
-      usleep(1000);
+      usleep(2000);
    }
 }
 

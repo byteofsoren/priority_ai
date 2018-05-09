@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+  <!-- Console launch prefix -->
+  <arg name="launch_prefix" default=""/>
+
+  <!-- Load parameters -->
+  <!-- <rosparam command="load" ns="yolo_depth_fusion" file="$(find yolo_depth_fusion)/config/settings.yaml"/> -->
+  <!-- Set sound resource parameters -->
+  <!-- <param name="priority_ai/sounds_dir" type="str" value="$(cat $HOME)/catkin_ws/src/priority_ai/resources/" />-->
+
+  <!-- Start darknet and ros wrapper -->
+  <node pkg="priority_ai" type="priority_ai" name="priority_ai" respawn="true" cwd="node"/>
+
+</launch>

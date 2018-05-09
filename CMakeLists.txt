@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   yolo_depth_fusion
   blindy_findy
+  roslib
 )
 
 ## System dependencies are found with CMake's conventions
