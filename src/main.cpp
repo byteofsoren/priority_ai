@@ -22,40 +22,58 @@
 #define CHANNEL_DELAY 1
 #define FINDY_FTOI(x) (int) 10*x
 
-
+fuzzyLogic *global_fuzzy_yolo;
 Sound global_tones;
 std::string global_path;
+ros::NodeHandle *global_rnode;
 void blindy_findy_callback(const blindy_findy::distances msg);
-void say(std::string text);
+void yolo_depth_pusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &msg);
+
 
 int main(int argc, char *argv[])
 {
    for (int i = 0; i < argc; ++i) {
       std::cout << "argument nr=" << i << " argument=" << argv[i] << std::endl;
    }
+   /* ===========[ Init ]============== */
    global_path = ros::package::getPath("priority_ai");
    ros::init(argc, argv, "priority_ai");
    ros::NodeHandle rnode;
+   global_rnode = &rnode;
    rnode.setParam("name","priority_ai");
-   rnode.param<float>("volume",100);
-   ROS_INFO_STREAM("\n==============================\nPath=" << global_path << "\n==============================");
+   /* Load sounds in tho the sound object */
    global_tones.add_sound(global_path  + "/resources/ping.wav","ping");
    global_tones.add_sound(global_path + "/resources/sonar.wav","sonar");
    global_tones.add_sound(global_path + "/resources/tom.wav","tom");
-   ros::Subscriber sub_blindy = rnode.subscribe("/distances",1000,blindy_findy_callback);
-   ros::ServiceClient robclient = rnode.serviceClient<robospeak::sayString>("say_string");
-   robospeak::sayString srv;
-   ros::Rate loop_rate(20);
-   while(ros::ok()){
-      srv.request.str = "Hello from priority ai";
-      ROS_INFO_STREAM("Sending: " << srv.request.str << "\n");
-      if(robclient.call(srv))
-         ROS_INFO_STREAM("Return: " << srv.response.str << "\n");
-      ros::spinOnce();
-      loop_rate.sleep();
-   }
+   /* Create the fuzzy classifier to yolo_depth_fusion module */
+   fuzzyClass *near = new fuzzyClass(1.0,0.0);
+   fuzzyClass *mid = new fuzzyClass(0.0,0.0);
+   fuzzyClass *far = new fuzzyClass(0.0,1.0);
+   fuzzyClass *left= new fuzzyClass(0.0,1.0);
+   fuzzyClass *forward= new fuzzyClass(0.0,1.0);
+   fuzzyClass *right= new fuzzyClass(0.0,1.0);
+   near->add_point(0.5,0.0);
+   mid->add_point(0.5,1.0);
+   far->add_point(0.5,0.0);
+   left->add_point(0.5,0.0);
+   forward->add_point(0.5,1.0);
+   right->add_point(0.5,0.0);
+   /* Add the fussy class to the global fully logic object */
+   global_fuzzy_yolo = new fuzzyLogic;
+   global_fuzzy_yolo->add_classifier("near", near);
+   global_fuzzy_yolo->add_classifier("mid", mid);
+   global_fuzzy_yolo->add_classifier("far", far);
+
+   global_fuzzy_yolo->add_classifier("left", left);
+   global_fuzzy_yolo->add_classifier("forward", forward);
+   global_fuzzy_yolo->add_classifier("right", right);
 
 
+   /* Subscribe to blindy_findy module */
+   ros::Subscriber sub_blindy = rnode.subscribe("/distances",1,blindy_findy_callback);
+   /* Subscirbe to yolo_depth_fusion mudule */
+   ros::Subscriber yolo = rnode.subscribe("/yolo_depth_fusion/objects", 1, yolo_depth_pusion_callback);
+     ros::spin();
    return 0;
 }
 
@@ -84,6 +102,19 @@ void blindy_findy_callback(const blindy_findy::distances msg){
    counter++;
 }
 
-void say(std::string text){
+void yolo_depth_pusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &msg){
+   static int counter = 0;
+   ROS_INFO_STREAM("yolo_depth_fusion recived: " << msg->list[0].classification << " and it was good\n");
+    /* Connect to the robotspeak client
+    * The say_string at the end needs to stay as it is
+    * because its used on the other end.
+    */
+   ros::ServiceClient robclient = global_rnode->serviceClient<robospeak::sayString>("say_string");
+   robospeak::sayString srv;
+
+   srv.request.str = msg->list[0].classification;
+   ROS_INFO_STREAM("Sending: " << srv.request.str << "\n");
+   if(robclient.call(srv))
+      ROS_INFO_STREAM("Return: " << srv.response.str << "\n");
 
 }

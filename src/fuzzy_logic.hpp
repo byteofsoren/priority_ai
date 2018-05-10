@@ -57,6 +57,7 @@ public:
    virtual ~fuzzyLogic(){};
    void add_classifier(std::string label, fuzzyClass *fuzzy);
    int classyfy(float x, std::vector<float> *results);
+   float classyfyBy_label(float in, std::string label);
    int classyfy_label(std::vector<std::string> *results);
 };
 

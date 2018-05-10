@@ -78,6 +78,16 @@ int fuzzyLogic::classyfy(float x,std::vector<float> *results) {
    return couter;
 }
 
+float fuzzyLogic::classyfyBy_label(float in, std::string lable){
+   size_t index= -1;
+   for (index = 0; index< _labels.size(); ++index) {
+      if(lable.compare(_labels.at(index)) == 0){
+         return _fuzzy[index]->getLevel(in);
+      }
+   }
+   return -1  ;
+}
+
 int fuzzyLogic::classyfy_label(std::vector<std::string> *results) {
    int couter = 0;
    for (size_t i = 0; i < _fuzzy.size(); ++i) {
