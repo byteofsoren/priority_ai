@@ -13,19 +13,26 @@
 typedef struct _message_struct{
    int priority;
    std::string message;
-   bool operator<(_message_struct const &r) const { return priority > r.priority; }
+   bool operator<(_message_struct const &r) const {
+      ROS_INFO("From sort operator");
+      return priority > r.priority; }
 } message_struct, *message_structPtr;
 
 class MessageQueue
 {
 private:
-   std::vector<message_structPtr> _queue;
-   bool _compaire_queue(message_struct left, message_struct right);
+   std::vector<message_struct> _queue;
+   static void thread_say_queue(ros::ServiceClient *service, MessageQueue* parent);
+   bool _running;
+   std::thread *thread_handle;
 
 public:
-   MessageQueue(ros::NodeHandlePtr handle);
-   void add_message(std::string message, int priority);
-   int queue_size();
+   MessageQueue(ros::ServiceClient *service);
+   void push(std::string message, int priority);
+   std::string pop();
+   void sort();
+   size_t size();
+   std::mutex message_queue_lock;
    virtual ~MessageQueue();
 };
 

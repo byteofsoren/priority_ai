@@ -68,7 +68,7 @@ add_executable(${PROJECT_NAME}
    src/fuzzy_logic.cpp
    src/test.cpp
    src/rostopic.cpp
-   std/message_queue.cpp
+   src/messagequeue.cpp
 )
 
 ## Rename C++ executable without prefix

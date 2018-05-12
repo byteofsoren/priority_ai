@@ -1,6 +1,7 @@
 #include "messagequeue.hpp"
+#include "globals.h"
 
-std::mutex message_queue_lock;
+
 
 /* The first part of this file is a function that is executed as a thread.
  * The function uses the robottalk module to send text to the voice synthesiser.
@@ -12,46 +13,70 @@ std::mutex message_queue_lock;
  * std::vector isn't thread safe.
  */
 
-typedef struct _thread_com{
-   ros::ServiceClient *roshandle;
-   std::vector<message_structPtr> *queue;
-   bool running;
-} thread_com, *thread_comPtr;
 
-void tread_say_queue(thread_comPtr connection){
+void MessageQueue::thread_say_queue(ros::ServiceClient *service, MessageQueue* parent){
    robospeak::sayString srv;
-   while (connection->running) {
+   ROS_INFO("Init thread_say_queue");
+   while (parent->_running) {
       /* Loc mutex before accesing data */
-      message_queue_lock.lock();
       /* Coppy the first elements text in the queue vector to a string */
-      message_struct local  =  (message_struct) connection->queue->pop_back();
-      message_queue_lock.unlock();
-      srv.request.str = "hello";
-      message_queue_lock.unlock();
-      if (connection->roshandle->call(srv)) {
-         ROS_INFO_STREAM("Response: " << srv.response.str);
+      if(parent->size() > 0){
+         parent->message_queue_lock.lock();
+         srv.request.str = parent->pop();
+         parent->message_queue_lock.unlock();
+
+         if (service->call(srv)) {
+            ROS_INFO_STREAM("Response: " << srv.response.str);
+         }
       }
-      sleep(1);
+      usleep(1000);
    }
 }
 
-MessageQueue::MessageQueue(ros::NodeHandlePtr handle){
-   handle->ok();
+MessageQueue::MessageQueue(ros::ServiceClient *service){
+   this->_running = true;
+   this->message_queue_lock.lock();
+   //std::thread(this->thread_say_queue,service, this);
+   this->thread_handle = new std::thread(this->thread_say_queue,service,this);
+   this->message_queue_lock.unlock();
 }
 
-void MessageQueue::add_message(std::string message, int priority){
+void MessageQueue::push(std::string message, int priority){
    ROS_INFO_STREAM("Adding message " << message << ", with priority " << priority);
    /* Creating the new message struct */
-   message_structPtr newmessage = new message_struct;
-   newmessage->message=message;
-   newmessage->priority=priority;
+   message_struct newmessage;
+   newmessage.message=message;
+   newmessage.priority=priority;
    /* Adding it to the queue require that the mutex locks */
-   message_queue_lock.lock();
    _queue.push_back(newmessage);
-   /* Sort the queue */
-   std::sort(_queue.begin(), _queue.end());
+
+   //std::sort(_queue.begin(), _queue.end());
    /* unloc the mutex now when the queue is sorted */
-   message_queue_lock.unlock();
 }
+
+std::string MessageQueue::pop(){
+   std::string retvalue = _queue.at(0).message;
+   _queue.erase(_queue.begin());
+   return retvalue;
+}
+
+void MessageQueue::sort(){
+   this->message_queue_lock.lock();
+   std::sort(_queue.begin(), _queue.end());
+   this->message_queue_lock.unlock();
+}
+
+size_t MessageQueue::size(){
+   return _queue.size();
+}
+
+MessageQueue::~MessageQueue(){
+   this->_running = false;
+   ROS_INFO("MessageQueue destruct stet _running=false");
+   //this->thread_handle->join();
+   ROS_INFO("MessageQueue godbye");
+}
+
+
 
 

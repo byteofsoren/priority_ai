@@ -10,6 +10,8 @@
 #include <algorithm>
 #include "globals.h"
 
+bool SOUND_RUNNING = false;
+
 void _cleaner(std::vector<sf::Sound*> *sounds);
 
 double sind(double angle)
