@@ -122,14 +122,14 @@ void blindy_findy_callback(const blindy_findy::distances msg){
 
 struct prioObject{
     int priority;
-    yolo_depth_fusion::yoloObject data;
+    const yolo_depth_fusion::yoloObject *data;
 };
 
 bool  compStruct(const struct prioObject &a, const struct prioObject &b) {
    return a.priority < b.priority;
 }
 
-size_t threshold = 2;
+size_t threshold = 1;
 
 void yolo_depth_fusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &msg){
     /* Connect to the robotspeak client
@@ -155,18 +155,21 @@ void yolo_depth_fusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &
  
       for (size_t i = 0; i < counter; ++i) {
          ROS_INFO_STREAM("Class " << msg->list[i].classification);
-         struct prioObject currentYoloObject;
-         currentYoloObject.data = msg->list[i];
-         currentYoloObject.priority = priority_calculation(msg->list[i].x,  msg->list[i].y,msg->list[i].distance);
-         objectVector.push_back(currentYoloObject);
+         struct prioObject *currentYoloObject = new struct prioObject;
+         currentYoloObject->data = &(msg->list[i]);
+         currentYoloObject->priority = priority_calculation(msg->list[i].x,  msg->list[i].y,msg->list[i].distance);
+         objectVector.push_back(*currentYoloObject);
+         delete currentYoloObject;
       }
       std::sort(objectVector.begin(), objectVector.end(),compStruct);
       for (size_t i = 0; i < threshold; ++i) {     
-        srv.request.str = objectVector[i].data.classification;
+        srv.request.str = objectVector[i].data->classification;
         ROS_INFO_STREAM("Sending: " << srv.request.str << "\n");
         if(roboPtr->call(srv))
             ROS_INFO_STREAM("Return: " << srv.response.str << "\n");
       }
+      objectVector.clear();
+
    }
 }
 
