@@ -12,10 +12,9 @@
 
 typedef struct _message_struct{
    int priority;
-   std::string message;
+   std::string *message;
    bool operator<(_message_struct const &r) const {
-      ROS_INFO("From sort operator");
-      return priority > r.priority; }
+      return priority <= r.priority; }
 } message_struct, *message_structPtr;
 
 class MessageQueue
@@ -25,11 +24,14 @@ private:
    static void thread_say_queue(ros::ServiceClient *service, MessageQueue* parent);
    bool _running;
    std::thread *thread_handle;
+   int _threshold;
 
 public:
    MessageQueue(ros::ServiceClient *service);
    void push(std::string message, int priority);
-   std::string pop();
+   std::string pop(int place);
+   void clear_queue();
+   void set_threshold(int th);
    void sort();
    size_t size();
    std::mutex message_queue_lock;

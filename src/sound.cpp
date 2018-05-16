@@ -99,7 +99,7 @@ void _cleaner(std::vector<sf::Sound*> *sounds){
                sounds->erase(sounds->begin());
          }
       }
-      usleep(2000);
+      usleep(1000);
    }
 }
 
