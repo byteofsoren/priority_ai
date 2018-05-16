@@ -25,7 +25,7 @@ Sound global_tones;
 ros::NodeHandle *global_rnode;
 fuzzyLogic *global_fuzzy_yolo;
 std::string global_path;
-MessageQueue *queue;
+
 
 
 ros::ServiceClient* roboPtr;
