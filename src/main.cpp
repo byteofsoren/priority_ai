@@ -17,7 +17,6 @@
 #include "yolo_depth_fusion/yoloObject.h"
 #include "yolo_depth_fusion/yoloObjects.h"
 #include "robospeak/sayString.h"
-#include "messagequeue.hpp"
 
 #define CHANNEL_DELAY 1
 #define FINDY_FTOI(x) (int) 10*x
@@ -28,6 +27,8 @@ fuzzyLogic *global_fuzzy_yolo;
 std::string global_path;
 MessageQueue *queue;
 
+
+ros::ServiceClient* roboPtr;
 
 void blindy_findy_callback(const blindy_findy::distances msg);
 void yolo_depth_pusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &msg);
@@ -73,7 +74,9 @@ int main(int argc, char *argv[])
    global_fuzzy_yolo->add_classifier("right", right);
 
    ros::ServiceClient robclient = global_rnode->serviceClient<robospeak::sayString>("say_string");
+   roboPtr = &robclient;
    //MessageQueue queue(&robclient);
+   /*
    ROS_INFO("Init message queue");
    queue = new MessageQueue(&robclient);
    ROS_INFO("Done with message queue");
@@ -82,11 +85,11 @@ int main(int argc, char *argv[])
    queue->push("Kit have started", 1);
    queue->message_queue_lock.unlock();
    usleep(10);
-
+   */
    /* Subscribe to blindy_findy module */
    ros::Subscriber sub_blindy = rnode.subscribe("/distances",1,blindy_findy_callback);
    /* Subscirbe to yolo_depth_fusion mudule */
-   ros::Subscriber yolo = rnode.subscribe("/yolo_depth_fusion/objects", 1, yolo_depth_pusion_callback);
+   ros::Subscriber yolo = rnode.subscribe("/yolo_depth_fusion/objects", 1, yolo_depth_fusion_callback);
      ros::spin();
    return 0;
 }
@@ -117,41 +120,52 @@ void blindy_findy_callback(const blindy_findy::distances msg){
    counter++;
 }
 
-void yolo_depth_pusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &msg){
+struct prioObject{
+    int prriority;
+    yolo_depth_fusion::yoloObject data;
+    bool operator<(_message_struct const &r) const {
+        return priority <= r.priority; }
+};
+
+
+int threshold = 2;
+
+void yolo_depth_fusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &msg){
     /* Connect to the robotspeak client
     * The say_string at the end needs to stay as it is
     * because its used on the other end.
+    */
    robospeak::sayString srv;
-
+/*
    srv.request.str = msg->list[0].classification;
    ROS_INFO_STREAM("Sending: " << srv.request.str << "\n");
    if(robclient.call(srv))
       ROS_INFO_STREAM("Return: " << srv.response.str << "\n");
 
     */
-   //queue->push("Hello from yolo_depth_pusion_callback", 1);
+
    ROS_INFO("yolo_depth_pusion_callback");
    size_t counter=msg->list.size();
    //ROS_INFO_STREAM("Got " << counter << "st yoloObjects");
    //queue->message_queue_lock.lock();
    if(counter > 0){
-      ROS_INFO("yolo_depth_pusion_callback: Lock mutex");
-      queue->message_queue_lock.lock();
-      usleep(10);
-      ROS_INFO("yolo_depth_pusion_callback: Lock mutex done");
+   
+      std::vector<struct prioObject> objectVector;
+ 
       for (size_t i = 0; i < counter; ++i) {
-         ROS_INFO_STREAM("push message " << msg->list[i].classification << "to MessageQueue");
-         queue->push(msg->list[i].classification, priority_calculation(msg->list[i].x,  msg->list[i].y,msg->list[i].distance ));
+         ROS_INFO_STREAM("Class " << msg->list[i].classification);
+         struct prioObject currentYoloObject;
+         currentYoloObject.data = msg->list[i];
+         currentYoloObject.prriority = priority_calculation(msg->list[i].x,  msg->list[i].y,msg->list[i].distance);
+         objectVector.push_back(currentYoloObject);
       }
-      ROS_INFO("yolo_depth_pusion_callback sort the data in the queue");
-      queue->sort();
-      usleep(100);
-      ROS_INFO("yolo_depth_pusion_callback: unLock mutex");
-      queue->message_queue_lock.unlock();
-      usleep(10);
-      ROS_INFO("yolo_depth_pusion_callback: unLock mutex done:");
-      sleep(1);
-      ROS_INFO("return");
+      std::sort(objectVector.begin(), objectVector.end());
+      for (size_t i = 0; i < threshold; ++i) {     
+        srv.request.str = objectVector[i].data.classification;
+        ROS_INFO_STREAM("Sending: " << srv.request.str << "\n");
+        if(roboPtr->call(srv))
+            ROS_INFO_STREAM("Return: " << srv.response.str << "\n");
+      }
    }
 }
 
