@@ -6,6 +6,7 @@
 #include "test.hpp"
 #include <fstream>
 #include <ctime>
+#include <math.h>
 #include <iomanip>
 #include <vector>
 #include <ros/package.h>
@@ -33,7 +34,7 @@ ros::ServiceClient* roboPtr;
 void blindy_findy_callback(const blindy_findy::distances msg);
 void yolo_depth_fusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &msg);
 int priority_calculation(int x, int y, float distance);
-
+float filterDistance(float distance);
 
 int main(int argc, char *argv[])
 {
@@ -54,14 +55,12 @@ int main(int argc, char *argv[])
    fuzzyClass *near = new fuzzyClass(1.0,0.0);
    fuzzyClass *mid = new fuzzyClass(0.0,0.0);
    fuzzyClass *far = new fuzzyClass(0.0,1.0);
-   fuzzyClass *left= new fuzzyClass(0.0,1.0);
-   fuzzyClass *forward= new fuzzyClass(0.0,1.0);
+   fuzzyClass *left= new fuzzyClass(1.0,0.0); 
    fuzzyClass *right= new fuzzyClass(0.0,1.0);
    near->add_point(0.5,0.0);
    mid->add_point(0.5,1.0);
    far->add_point(0.5,0.0);
    left->add_point(0.5,0.0);
-   forward->add_point(0.5,1.0);
    right->add_point(0.5,0.0);
    ROS_INFO("Add the fussy class to the global fully logic object");
    global_fuzzy_yolo = new fuzzyLogic;
@@ -70,7 +69,6 @@ int main(int argc, char *argv[])
    global_fuzzy_yolo->add_classifier("far", far);
 
    global_fuzzy_yolo->add_classifier("left", left);
-   global_fuzzy_yolo->add_classifier("middle", forward);
    global_fuzzy_yolo->add_classifier("right", right);
 
    ros::ServiceClient robclient = global_rnode->serviceClient<robospeak::sayString>("say_string");
@@ -138,6 +136,17 @@ bool  compStruct(const struct prioObject &a, const struct prioObject &b) {
    return a.priority < b.priority;
 }
 
+std::string position(int x) {
+    int picture_width = 672;
+    if (x < picture_width / 3)
+            return "left  ";
+    if (x > picture_width - picture_width / 3)
+            return "right  ";
+    return "middle  ";
+}
+
+
+
 size_t threshold = 1;
 
 void yolo_depth_fusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &msg){
@@ -172,14 +181,15 @@ void yolo_depth_fusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &
       }
       std::sort(objectVector.begin(), objectVector.end(),compStruct);
       for (size_t i = 0; i < threshold; ++i) {     
-        srv.request.str = objectVector[i].data->classification;
-        ROS_INFO_STREAM("Sending: " << srv.request.str << "\n");
+        srv.request.str = objectVector[i].data->classification + " " + std::to_string((int)round(filterDistance(objectVector[i].data->distance))) + " " + position(objectVector[i].data->x);
+        ROS_INFO_STREAM("Sending: " << srv.request.str << " With priority " << objectVector[i].priority << "\n");
         if(roboPtr->call(srv))
             ROS_INFO_STREAM("Return: " << srv.response.str << "\n");
       }
       objectVector.clear();
 
    }
+   usleep(500000);
 }
 
 
@@ -189,9 +199,9 @@ int priority_calculation(int x, int y, float distance){
     * floats from 0.0 to 1.0 and then fuzzy fi the images
     */
    if (distance < 0) {
-      distance = 0;
+      distance = 0.1;
    } else if (distance > 20){
-      distance = 20;
+      distance = 20.0;
    }
    distance = distance/20;
    float picture_width = 672;
