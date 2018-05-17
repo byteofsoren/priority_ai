@@ -94,17 +94,26 @@ int main(int argc, char *argv[])
    return 0;
 }
 
+float filterDistance(float distance) {
+    if (distance < 0)
+        return 0.1;
+    if (distance > 20)
+        return 20.1;
+    return distance;
+}
+
+
 void blindy_findy_callback(const blindy_findy::distances msg){
    ROS_INFO("blindy_findy_callback");
    static int counter = 0;
-   float right = msg.distR;
-   float mid = msg.distM;
-   float left = msg.distL;
+   float right = filterDistance(msg.distR);
+   float mid = filterDistance(msg.distM);
+   float left = filterDistance(msg.distL);
    int iright = FINDY_FTOI(right);
    int imid = FINDY_FTOI(mid);
    int ileft = FINDY_FTOI(left);
    //ROS_INFO_STREAM("counter=" << counter << "st " << counter%(CHANNEL_DELAY * iright) << "\n");
-   usleep(10);
+   //usleep(10);
    if (counter%(CHANNEL_DELAY * iright)== 0){
       ROS_INFO("Right");
       global_tones.play_sound("tom",50,right);
