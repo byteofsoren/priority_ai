@@ -20,8 +20,12 @@
 #include "robospeak/sayString.h"
 
 #define CHANNEL_DELAY 1
-#define FINDY_FTOI(x) (int) 10*x
 
+float FINDY_FTOI(float distance){
+    float k = -0.05;
+    float t = 5;
+        return 1.0 + t / (k* distance + 1);
+}
 Sound global_tones;
 ros::NodeHandle *global_rnode;
 fuzzyLogic *global_fuzzy_yolo;
@@ -107,20 +111,20 @@ void blindy_findy_callback(const blindy_findy::distances msg){
    float right = filterDistance(msg.distR);
    float mid = filterDistance(msg.distM);
    float left = filterDistance(msg.distL);
-   int iright = FINDY_FTOI(right);
-   int imid = FINDY_FTOI(mid);
-   int ileft = FINDY_FTOI(left);
+   int iright = (int)FINDY_FTOI(right);
+   int imid = (int)FINDY_FTOI(mid);
+   int ileft = (int)FINDY_FTOI(left);
    //ROS_INFO_STREAM("counter=" << counter << "st " << counter%(CHANNEL_DELAY * iright) << "\n");
    //usleep(10);
    if (counter%(CHANNEL_DELAY * iright)== 0){
       ROS_INFO("Right");
       global_tones.play_sound("tom",50,right);
    }
-   if (counter%(CHANNEL_DELAY*imid)== 0){
+   if (counter%(CHANNEL_DELAY * imid)== 0){
       ROS_INFO("Mid");
       global_tones.play_sound("tom",90,mid);
    }
-   if (counter%(CHANNEL_DELAY*ileft) == 0){
+   if (counter%(CHANNEL_DELAY * ileft) == 0){
       ROS_INFO("Left");
       global_tones.play_sound("tom",180-50,left);
    }

@@ -64,6 +64,7 @@ void Sound::add_sound(std::string path, std::string label){
 }
 
 int Sound::play_sound(unsigned long sound_nr, float angle, float distance){
+   if (distance < 10) {
    float xf = _multippler*distance*cosd(angle);
    float yf = _multippler*distance*sind(angle);
    sf::Sound *s = new sf::Sound;
@@ -71,6 +72,7 @@ int Sound::play_sound(unsigned long sound_nr, float angle, float distance){
    s->setPosition(xf,yf,0);
    s->play();
    _sounds.push_back(s);
+   }
    return 0;
 }
 
