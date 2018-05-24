@@ -2,7 +2,6 @@
 #include <iostream>
 #include "sound.hpp"
 #include "unistd.h"
-#include "fuzzy_logic.hpp"
 #include "test.hpp"
 #include <fstream>
 #include <ctime>
@@ -19,16 +18,16 @@
 #include "yolo_depth_fusion/yoloObjects.h"
 #include "robospeak/sayString.h"
 
-#define CHANNEL_DELAY 1
-
 float FINDY_FTOI(float distance){
     float k = -0.05;
     float t = 5;
         return 1.0 + t / (k* distance + 1);
 }
+
+
+
 Sound global_tones;
 ros::NodeHandle *global_rnode;
-fuzzyLogic *global_fuzzy_yolo;
 std::string global_path;
 
 
@@ -55,39 +54,12 @@ int main(int argc, char *argv[])
    global_tones.add_sound(global_path  + "/resources/ping.wav","ping");
    global_tones.add_sound(global_path + "/resources/sonar.wav","sonar");
    global_tones.add_sound(global_path + "/resources/tom.wav","tom");
-   ROS_INFO("Create the fuzzy classifier to yolo_depth_fusion module");
-   fuzzyClass *near = new fuzzyClass(1.0,0.0);
-   fuzzyClass *mid = new fuzzyClass(0.0,0.0);
-   fuzzyClass *far = new fuzzyClass(0.0,1.0);
-   fuzzyClass *left= new fuzzyClass(1.0,0.0); 
-   fuzzyClass *right= new fuzzyClass(0.0,1.0);
-   near->add_point(0.5,0.0);
-   mid->add_point(0.5,1.0);
-   far->add_point(0.5,0.0);
-   left->add_point(0.5,0.0);
-   right->add_point(0.5,0.0);
-   ROS_INFO("Add the fussy class to the global fully logic object");
-   global_fuzzy_yolo = new fuzzyLogic;
-   global_fuzzy_yolo->add_classifier("close", near);
-   global_fuzzy_yolo->add_classifier("middle", mid);
-   global_fuzzy_yolo->add_classifier("far", far);
-
-   global_fuzzy_yolo->add_classifier("left", left);
-   global_fuzzy_yolo->add_classifier("right", right);
 
    ros::ServiceClient robclient = global_rnode->serviceClient<robospeak::sayString>("say_string");
    roboPtr = &robclient;
-   //MessageQueue queue(&robclient);
-   /*
-   ROS_INFO("Init message queue");
-   queue = new MessageQueue(&robclient);
-   ROS_INFO("Done with message queue");
-   queue->message_queue_lock.lock();
-   usleep(10);
-   queue->push("Kit have started", 1);
-   queue->message_queue_lock.unlock();
-   usleep(10);
-   */
+   
+   
+   
    /* Subscribe to blindy_findy module */
    ros::Subscriber sub_blindy = rnode.subscribe("/distances",1,blindy_findy_callback);
    /* Subscirbe to yolo_depth_fusion mudule */
@@ -159,18 +131,10 @@ void yolo_depth_fusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &
     * because its used on the other end.
     */
    robospeak::sayString srv;
-/*
-   srv.request.str = msg->list[0].classification;
-   ROS_INFO_STREAM("Sending: " << srv.request.str << "\n");
-   if(robclient.call(srv))
-      ROS_INFO_STREAM("Return: " << srv.response.str << "\n");
-
-    */
 
    ROS_INFO("yolo_depth_pusion_callback");
    size_t counter=msg->list.size();
    //ROS_INFO_STREAM("Got " << counter << "st yoloObjects");
-   //queue->message_queue_lock.lock();
    if(counter > 0){
    
       std::vector<struct prioObject> objectVector;
@@ -197,109 +161,168 @@ void yolo_depth_fusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &
 }
 
 
+/***********************************
+ * Fuzzy
+ ***********************************/
+
+
+float close(float input) {
+    if (input < 0) {
+        return 1.0;
+    } else if (input > 0.5) {
+        return 0.0;
+    } else {
+        return -2 * input + 1;
+    }
+
+}
+
+float middle(float input) {
+    if (input < 0) {
+        return 0.0;
+    } else if (input > 1) {
+        return 0.0;
+    } else if (input < 0.5) {
+        return 2 * input;
+    } else {
+        return -2 * input + 2;
+    }
+}
+
+float far(float input) {
+    if (input < 0.5) {
+        return 0.0;
+    } else if (input > 1) {
+        return 1.0;
+    } else {
+        return 2 * input - 1;
+    }
+}
+
+#define low(input) far(input)
+
+#define high(input) close(input)
+
+#define left(input) close(input)
+
+#define right(input) far(input)
+
+
 int priority_calculation(int x, int y, float distance){
    /* priority_calulation assains a value dependent on a set of rules.
-    * It does this by first recalculate the int x,y,w and h to
-    * floats from 0.0 to 1.0 and then fuzzy fi the images
     */
+
+   /* Normalize distance */
    if (distance < 0) {
       distance = 0.1;
    } else if (distance > 20){
       distance = 20.0;
    }
    distance = distance/20;
-   float picture_width = 672;
-   float picture_height = 376;
-   /* Format the x and y cordinates to float from 0.0 to 1.0 */
+
+   /*Normalize the x and y cordinates to float from 0.0 to 1.0 */
    float xf = x/ picture_width;
    float yf = 1.0 - y/ picture_height;
-   /* Fuzzy rules */
-   /* Rule 1: IF x.middle AND y.low AND distance.close THEN very high */
+   
+   
+   /* Setup variables for later de-fuzzification of rules. */
    float numerator=0;
    float denominator = 0;
    float current;
-   //ROS_INFO("===[ Priority calculation ]===");
-   //ROS_INFO_STREAM("priority_calculation: fx=" << xf << " y=" << yf << " distance=" << distance);
 
-   current = std::min({global_fuzzy_yolo->classyfyBy_label(xf,"midle"),
-                                 global_fuzzy_yolo->classyfyBy_label(yf,"low"),
-                                 global_fuzzy_yolo->classyfyBy_label(distance, "middle")});
+
+   /* Fuzzy rules */
+   /* Rule 1: IF x.middle AND y.low AND distance.close THEN very high */
+   current = std::min({middle(xf),
+                       low(yf),
+                       close(distance)});
+   assert(current >= 0 && current <= 1);
    numerator += 1. * current;
    denominator += current;
-   //ROS_INFO_STREAM("Current=" << current << " numerator=" << numerator << " denominator=" << denominator);
 
 
    /* Rule 2: IF x.middle AND y.low AND distance.middle THEN high */
-   current = std::min({global_fuzzy_yolo->classyfyBy_label(xf,"middle"),
-                           global_fuzzy_yolo->classyfyBy_label(yf, "low"),
-                           global_fuzzy_yolo->classyfyBy_label(distance, "middle")});
-
+   current = std::min({middle(xf),
+                       low(yf),
+                       middle(distance)});
+   assert(current >= 0 && current <= 1);
    numerator += 5.75 * current;
    denominator += current;
 
-   //ROS_INFO_STREAM("Current=" << current << " numerator=" << numerator << " denominator=" << denominator);
+
    /* Rule 3: IF x.middle AND y.low AND distance.far THEN middle */
-   current = std::min({global_fuzzy_yolo->classyfyBy_label(xf,"middle"),
-                           global_fuzzy_yolo->classyfyBy_label(yf, "low"),
-                           global_fuzzy_yolo->classyfyBy_label(distance, "middle")});
+   current = std::min({middle(xf),
+                       low(yf),
+                       far(distance)});
+   assert(current >= 0 && current <= 1);
    numerator += 10.5 * current;
    denominator += current;
 
-   //ROS_INFO_STREAM("Current=" << current << " numerator=" << numerator << " denominator=" << denominator);
 
    /* Rule 4: IF (x.middle OR y.low) AND distance.close THEN high */
-   current = std::min({std::max({global_fuzzy_yolo->classyfyBy_label(xf,"middle"),global_fuzzy_yolo->classyfyBy_label(y,"low")}),
-                           global_fuzzy_yolo->classyfyBy_label(distance, "close")});
-
+   current = std::min({std::max({middle(xf),low(yf)}),
+                       close(distance)});
+   assert(current >= 0 && current <= 1);
    numerator += 5.75 * current;
    denominator += current;
-   //ROS_INFO_STREAM("Current=" << current << " numerator=" << numerator << " denominator=" << denominator);
+
+
    /* Rule 5: IF (x.middle OR y.low) AND distance.middle THEN middle */
-   current = std::min({std::max({global_fuzzy_yolo->classyfyBy_label(xf,"middle"),global_fuzzy_yolo->classyfyBy_label(y,"low")}),
-                           global_fuzzy_yolo->classyfyBy_label(distance, "middle")}); 
+   current = std::min({std::max({middle(xf),low(yf)}),
+                       middle(distance)});
+   assert(current >= 0 && current <= 1);
    numerator += 10.5 * current;
    denominator += current;
-   //ROS_INFO_STREAM("Current=" << current << " numerator=" << numerator << " denominator=" << denominator);
 
 
-   /* Rule 5: IF (x.middle OR y.low) AND distance.far THEN low */
-   current = std::min({std::max({global_fuzzy_yolo->classyfyBy_label(xf,"middle"),global_fuzzy_yolo->classyfyBy_label(y,"low")}),
-                           global_fuzzy_yolo->classyfyBy_label(distance, "far")}); 
+   /* Rule 6: IF (x.middle OR y.low) AND distance.far THEN low */
+   current = std::min({std::max({middle(xf),low(yf)}),
+                           far(distance)});
+   assert(current >= 0 && current <= 1);
    numerator += 15.25 * current;
    denominator += current;
 
-   //ROS_INFO_STREAM("Current=" << current << " numerator=" << numerator << " denominator=" << denominator);
-   /* IF (x.left OR x.right OR y.middle OR y.hight) AND distance.close THEN middel */
-   current = std::min({std::max({global_fuzzy_yolo->classyfyBy_label(xf,"right"),
-                        global_fuzzy_yolo->classyfyBy_label(xf,"left"),
-                        global_fuzzy_yolo->classyfyBy_label(yf,"middle"),
-                        global_fuzzy_yolo->classyfyBy_label(xf,"high")}),
-                       global_fuzzy_yolo->classyfyBy_label(distance,"close")});
 
+   /* Rule 7: IF (x.left OR x.middle OR x.right OR y.middle OR y.high OR y.low) AND distance.close THEN middel */
+   current = std::min({std::max({left(xf),
+                                 middle(xf),
+                                 right(xf),
+                                 low(yf),
+                                 middle(yf),
+                                 high(yf)}),
+                       close(distance)});
+   assert(current >= 0 && current <= 1);
    numerator += 10.5 * current;
    denominator += current;
-   //ROS_INFO_STREAM("Current=" << current << " numerator=" << numerator << " denominator=" << denominator);
-   /*IF (x.left OR x.right OR y.middle OR y.hight) AND distance.middle THEN low */
-   current = std::min({std::max({global_fuzzy_yolo->classyfyBy_label(xf,"right"),
-                        global_fuzzy_yolo->classyfyBy_label(xf,"left"),
-                        global_fuzzy_yolo->classyfyBy_label(yf,"middle"),
-                        global_fuzzy_yolo->classyfyBy_label(xf,"high")}),
-                       global_fuzzy_yolo->classyfyBy_label(distance,"middle")});
 
+
+   /* Rule 8: IF (x.left OR x.middle OR x.right OR y.middle OR y.high OR y.low) AND distance.middle THEN low */
+   current = std::min({std::max({left(xf),
+                                 middle(xf),
+                                 right(xf),
+                                 low(yf),
+                                 middle(yf),
+                                 high(yf)}),
+                       middle(distance)});
+   assert(current >= 0 && current <= 1);
    numerator += 15.25 * current;
    denominator += current;
-   //ROS_INFO_STREAM("Current=" << current << " numerator=" << numerator << " denominator=" << denominator);
-   /*IF (x.left OR xclose.right OR y.middle OR y.hight) AND distance.far THEN very low*/
-   current = std::min({std::max({global_fuzzy_yolo->classyfyBy_label(xf,"right"),
-                        global_fuzzy_yolo->classyfyBy_label(xf,"left"),
-                        global_fuzzy_yolo->classyfyBy_label(yf,"middle"),
-                        global_fuzzy_yolo->classyfyBy_label(xf,"high")}),
-                       global_fuzzy_yolo->classyfyBy_label(distance,"far")});
 
+
+   /* Rule 9: IF (x.left OR x.middle OR x.right OR y.middle OR y.high OR y.low) AND distance.far THEN very low*/
+   current = std::min({std::max({left(xf),
+                                 middle(xf),
+                                 right(xf),
+                                 low(yf),
+                                 middle(yf),
+                                 high(yf)}),
+                       far(distance)});
+   assert(current >= 0 && current <= 1);
    numerator += 20.0 * current;
    denominator += current;
-   int ret =(int) numerator / denominator;
-   ROS_INFO_STREAM("Current=" << current << " numerator=" << numerator << " denominator=" << denominator << " return=" << ret);
-   ROS_INFO("===================================");
+
+
+
+   int ret =round(numerator / denominator);
    return ret;
 }
