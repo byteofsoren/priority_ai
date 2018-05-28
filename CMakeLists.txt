@@ -64,11 +64,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}
    src/main.cpp
-   src/sound.cpp
-   src/fuzzy_logic.cpp
-   src/test.cpp
-   src/rostopic.cpp
-  
+   src/sound.cpp  
 )
 
 ## Rename C++ executable without prefix

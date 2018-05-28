@@ -1,7 +1,6 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 #include <string>
-#include "fuzzy_logic.hpp"
 #include "sound.hpp"
 
 #include <ros/ros.h>

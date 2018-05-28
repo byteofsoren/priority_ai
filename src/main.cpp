@@ -2,7 +2,6 @@
 #include <iostream>
 #include "sound.hpp"
 #include "unistd.h"
-#include "test.hpp"
 #include <fstream>
 #include <ctime>
 #include <math.h>
@@ -12,7 +11,6 @@
 #include <algorithm>
 #include "ros/ros.h"
 #include "std_msgs/String.h"
-#include "rostopic.hpp"
 #include "blindy_findy/distances.h"
 #include "yolo_depth_fusion/yoloObject.h"
 #include "yolo_depth_fusion/yoloObjects.h"
@@ -30,7 +28,8 @@ Sound global_tones;
 ros::NodeHandle *global_rnode;
 std::string global_path;
 
-
+int picture_width = 672;
+int picture_height = 376;
 
 ros::ServiceClient* roboPtr;
 
@@ -88,15 +87,15 @@ void blindy_findy_callback(const blindy_findy::distances msg){
    int ileft = (int)FINDY_FTOI(left);
    //ROS_INFO_STREAM("counter=" << counter << "st " << counter%(CHANNEL_DELAY * iright) << "\n");
    //usleep(10);
-   if (counter%(CHANNEL_DELAY * iright)== 0){
+   if (counter % iright == 0){
       ROS_INFO("Right");
       global_tones.play_sound("tom",50,right);
    }
-   if (counter%(CHANNEL_DELAY * imid)== 0){
+   if (counter % imid == 0){
       ROS_INFO("Mid");
       global_tones.play_sound("tom",90,mid);
    }
-   if (counter%(CHANNEL_DELAY * ileft) == 0){
+   if (counter % ileft == 0){
       ROS_INFO("Left");
       global_tones.play_sound("tom",180-50,left);
    }
@@ -113,7 +112,6 @@ bool  compStruct(const struct prioObject &a, const struct prioObject &b) {
 }
 
 std::string position(int x) {
-    int picture_width = 672;
     if (x < picture_width / 3)
             return "left  ";
     if (x > picture_width - picture_width / 3)
@@ -132,7 +130,7 @@ void yolo_depth_fusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &
     */
    robospeak::sayString srv;
 
-   ROS_INFO("yolo_depth_pusion_callback");
+   ROS_INFO("yolo_depth_fusion_callback");
    size_t counter=msg->list.size();
    //ROS_INFO_STREAM("Got " << counter << "st yoloObjects");
    if(counter > 0){
@@ -221,8 +219,8 @@ int priority_calculation(int x, int y, float distance){
    distance = distance/20;
 
    /*Normalize the x and y cordinates to float from 0.0 to 1.0 */
-   float xf = x/ picture_width;
-   float yf = 1.0 - y/ picture_height;
+   float xf = x/ (float) picture_width;
+   float yf = y/ (float) picture_height;
    
    
    /* Setup variables for later de-fuzzification of rules. */
