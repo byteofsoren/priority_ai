@@ -17,9 +17,10 @@
 #include "robospeak/sayString.h"
 
 float FINDY_FTOI(float distance){
-    float k = -0.05;
+    float k = -0.2;
     float t = 5;
-        return 1.0 + t / (k* distance + 1);
+    if (distance >= 5) return 2000000000.0;
+    return 1.0 + t / (k* distance + 1);
 }
 
 
@@ -155,7 +156,6 @@ void yolo_depth_fusion_callback(const yolo_depth_fusion::yoloObjects::ConstPtr &
       objectVector.clear();
 
    }
-   usleep(500000);
 }
 
 
